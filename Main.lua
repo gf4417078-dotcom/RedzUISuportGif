@@ -69,15 +69,31 @@ local redzlib = {
       ["Color Theme"] = Color3.fromRGB(255, 0, 128),
       ["Color Text"] = Color3.fromRGB(255, 255, 255),
       ["Color Dark Text"] = Color3.fromRGB(255, 150, 200)
+    },
+    -- ============================================================
+    -- TEMA BLACK HOLE: All Black + White Details
+    -- ============================================================
+    BlackHole = {
+      ["Color Hub 1"] = ColorSequence.new({
+        ColorSequenceKeypoint.new(0.00, Color3.fromRGB(5, 5, 5)),
+        ColorSequenceKeypoint.new(0.30, Color3.fromRGB(8, 8, 8)),
+        ColorSequenceKeypoint.new(0.70, Color3.fromRGB(8, 8, 8)),
+        ColorSequenceKeypoint.new(1.00, Color3.fromRGB(5, 5, 5))
+      }),
+      ["Color Hub 2"] = Color3.fromRGB(10, 10, 10),
+      ["Color Stroke"] = Color3.fromRGB(30, 30, 30),
+      ["Color Theme"] = Color3.fromRGB(255, 255, 255),  -- Branco puro
+      ["Color Text"] = Color3.fromRGB(255, 255, 255),   -- Texto branco
+      ["Color Dark Text"] = Color3.fromRGB(150, 150, 150) -- Texto cinza claro
     }
   },
   Info = {
-    Version = "2.0.0-GIF"
+    Version = "2.0.0-BLACKHOLE"
   },
   Save = {
     UISize = {550, 380},
     TabSize = 160,
-    Theme = "Darker"
+    Theme = "BlackHole"
   },
   Settings = {},
   Connection = {},
@@ -293,7 +309,7 @@ local GetFlag, SetFlag, CheckFlag do
 end
 
 local ScreenGui = Create("ScreenGui", CoreGui, {
-  Name = "redz Library V5-GIF",
+  Name = "redz Library V5-BlackHole",
 }, {
   Create("UIScale", {
     Scale = UIScale,
@@ -448,269 +464,239 @@ AddEle("Gradient", function(parent, props, ...)
   return New
 end)
 
--- ============ ANIMATION SYSTEM ============
-local AnimationSystem = {}
+-- ============================================================
+-- BLACK HOLE BACKGROUND SYSTEM
+-- ============================================================
+local BlackHoleSystem = {}
 
-function AnimationSystem:FadeIn(Instance, Duration)
-  Duration = Duration or 0.5
-  Instance.BackgroundTransparency = 1
-  CreateTween({Instance, "BackgroundTransparency", 0, Duration})
-end
-
-function AnimationSystem:ScaleIn(Instance, Duration)
-  Duration = Duration or 0.4
-  local OriginalSize = Instance.Size
-  Instance.Size = UDim2.new(0, 0, 0, 0)
-  CreateTween({Instance, "Size", OriginalSize, Duration, true, Enum.EasingStyle.Back})
-end
-
-function AnimationSystem:BounceIn(Instance, Duration)
-  Duration = Duration or 0.6
-  Instance.Position = Instance.Position + UDim2.new(0, 0, 0, 50)
-  Instance.BackgroundTransparency = 1
-  CreateTween({Instance, "Position", Instance.Position - UDim2.new(0, 0, 0, 50), Duration, true, Enum.EasingStyle.Bounce})
-  CreateTween({Instance, "BackgroundTransparency", 0, Duration})
-end
-
-function AnimationSystem:GlowEffect(Instance, Color, Duration)
-  Duration = Duration or 1
-  local Stroke = Instance:FindFirstChildOfClass("UIStroke") or Create("UIStroke", Instance, {
-    Thickness = 2,
-    Color = Color or Theme["Color Theme"]
-  })
-
-  local Tween1 = CreateTween({Stroke, "Thickness", 4, Duration/2})
-  Tween1.Completed:Connect(function()
-    CreateTween({Stroke, "Thickness", 2, Duration/2})
-  end)
-end
-
-function AnimationSystem:Shake(Instance, Duration)
-  Duration = Duration or 0.3
-  local OriginalPos = Instance.Position
-  for i = 1, 5 do
-    local offset = math.random(-5, 5)
-    CreateTween({Instance, "Position", OriginalPos + UDim2.new(0, offset, 0, 0), Duration/10, true})
-  end
-  CreateTween({Instance, "Position", OriginalPos, Duration/10})
-end
-
-function AnimationSystem:Pulse(Instance, Duration)
-  Duration = Duration or 1
-  local Tween1 = CreateTween({Instance, "Size", Instance.Size + UDim2.new(0, 5, 0, 5), Duration/2})
-  Tween1.Completed:Connect(function()
-    CreateTween({Instance, "Size", Instance.Size - UDim2.new(0, 5, 0, 5), Duration/2})
-  end)
-end
-
-function AnimationSystem:SlideIn(Instance, Direction, Duration)
-  Duration = Duration or 0.5
-  Direction = Direction or "Left"
-  local OriginalPos = Instance.Position
-
-  if Direction == "Left" then
-    Instance.Position = OriginalPos - UDim2.new(0, 100, 0, 0)
-  elseif Direction == "Right" then
-    Instance.Position = OriginalPos + UDim2.new(0, 100, 0, 0)
-  elseif Direction == "Top" then
-    Instance.Position = OriginalPos - UDim2.new(0, 0, 0, 100)
-  elseif Direction == "Bottom" then
-    Instance.Position = OriginalPos + UDim2.new(0, 0, 0, 100)
-  end
-
-  CreateTween({Instance, "Position", OriginalPos, Duration, true, Enum.EasingStyle.Quint})
-end
-
--- ============ PARTICLE SYSTEM ============
-local ParticleSystem = {}
-
-function ParticleSystem:CreateSparkle(Parent, Configs)
+function BlackHoleSystem:Create(MainFrame, Configs)
   Configs = Configs or {}
-  local Color = Configs.Color or Theme["Color Theme"]
-  local Count = Configs.Count or 10
-  local Lifetime = Configs.Lifetime or 2
-  local Size = Configs.Size or 4
+  local EnableBlackHole = Configs.Enabled ~= false
+  local ParticleCount = Configs.ParticleCount or 60
+  local CenterGlow = Configs.CenterGlow ~= false
+  local AccretionDisk = Configs.AccretionDisk ~= false
 
-  for i = 1, Count do
-    task.spawn(function()
-      local Particle = Create("Frame", Parent, {
-        Size = UDim2.new(0, Size, 0, Size),
-        Position = UDim2.new(math.random(), 0, math.random(), 0),
-        BackgroundColor3 = Color,
-        BackgroundTransparency = 0,
-        BorderSizePixel = 0,
-        ZIndex = 100
-      })
-      Make("Corner", Particle, UDim.new(0.5, 0))
+  if not EnableBlackHole then return nil end
 
-      local Angle = math.random() * 2 * math.pi
-      local Speed = math.random(20, 60)
-      local Velocity = Vector2.new(math.cos(Angle) * Speed, math.sin(Angle) * Speed)
-
-      CreateTween({Particle, "Size", UDim2.new(0, 0, 0, 0), Lifetime})
-      CreateTween({Particle, "BackgroundTransparency", 1, Lifetime})
-
-      local StartTime = tick()
-      while tick() - StartTime < Lifetime do
-        task.wait(0.03)
-        Particle.Position = Particle.Position + UDim2.new(0, Velocity.X * 0.03, 0, Velocity.Y * 0.03)
-        Velocity = Velocity * 0.95
-      end
-      Particle:Destroy()
-    end)
-    task.wait(0.05)
-  end
-end
-
-function ParticleSystem:CreateFloatingDots(Parent, Configs)
-  Configs = Configs or {}
-  local Color = Configs.Color or Theme["Color Theme"]
-  local Count = Configs.Count or 20
-
-  for i = 1, Count do
-    task.spawn(function()
-      local Dot = Create("Frame", Parent, {
-        Size = UDim2.new(0, math.random(2, 6), 0, math.random(2, 6)),
-        Position = UDim2.new(math.random(), 0, 1, 0),
-        BackgroundColor3 = Color,
-        BackgroundTransparency = math.random(30, 70) / 100,
-        BorderSizePixel = 0,
-        ZIndex = 1
-      })
-      Make("Corner", Dot, UDim.new(0.5, 0))
-
-      local Duration = math.random(3, 8)
-      CreateTween({Dot, "Position", UDim2.new(Dot.Position.X.Scale, 0, -0.1, 0), Duration})
-      CreateTween({Dot, "BackgroundTransparency", 1, Duration})
-
-      task.wait(Duration)
-      Dot:Destroy()
-    end)
-    task.wait(0.2)
-  end
-end
-
-function ParticleSystem:CreateRipple(Parent, Position, Color)
-  local Ripple = Create("Frame", Parent, {
-    Size = UDim2.new(0, 0, 0, 0),
-    Position = Position,
-    AnchorPoint = Vector2.new(0.5, 0.5),
-    BackgroundColor3 = Color or Theme["Color Theme"],
-    BackgroundTransparency = 0.5,
-    BorderSizePixel = 0,
-    ZIndex = 50
-  })
-  Make("Corner", Ripple, UDim.new(0.5, 0))
-
-  CreateTween({Ripple, "Size", UDim2.new(0, 100, 0, 100), 0.6})
-  CreateTween({Ripple, "BackgroundTransparency", 1, 0.6})
-
-  task.wait(0.6)
-  Ripple:Destroy()
-end
-
--- ============ GIF BACKGROUND SYSTEM ============
-local GIFBackground = {}
-
-function GIFBackground:Setup(MainFrame, Configs)
-  Configs = Configs or {}
-  local GIFUrl = Configs.GIFUrl or Configs.Image or ""
-  local GIFAssetId = Configs.GIFAssetId or ""
-  local Animated = Configs.Animated ~= false
-  local OverlayColor = Configs.OverlayColor or Color3.fromRGB(0, 0, 0)
-  local OverlayTransparency = Configs.OverlayTransparency or 0.5
-  local BlurEnabled = Configs.Blur or false
-
-  -- Create background container
+  -- Container do fundo
   local BGContainer = Create("Frame", MainFrame, {
     Size = UDim2.new(1, 0, 1, 0),
     BackgroundTransparency = 1,
     ZIndex = 0,
-    Name = "GIFBackground"
+    Name = "BlackHoleBackground"
   })
 
-  -- GIF/Image background
-  local BGImage = Create("ImageLabel", BGContainer, {
+  -- Fundo escuro absoluto
+  local DarkBg = Create("Frame", BGContainer, {
     Size = UDim2.new(1, 0, 1, 0),
-    BackgroundTransparency = 1,
-    Image = GIFAssetId ~= "" and GIFAssetId or GIFUrl,
-    ImageColor3 = Color3.fromRGB(255, 255, 255),
-    ScaleType = "Crop",
+    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+    BackgroundTransparency = 0,
     ZIndex = 1
   })
 
-  -- Animated gradient overlay for dynamic effect
-  local GradientOverlay = Create("Frame", BGContainer, {
-    Size = UDim2.new(1, 0, 1, 0),
-    BackgroundTransparency = 1,
-    ZIndex = 2
+  -- Centro do buraco negro (escuridão absoluta)
+  local BlackHoleCenter = Create("Frame", BGContainer, {
+    Size = UDim2.new(0, 80, 0, 80),
+    Position = UDim2.new(0.5, 0, 0.5, 0),
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+    BackgroundTransparency = 0,
+    ZIndex = 5,
+    Name = "BlackHoleCenter"
   })
+  Make("Corner", BlackHoleCenter, UDim.new(0.5, 0))
 
-  local Gradient = Create("UIGradient", GradientOverlay, {
-    Color = ColorSequence.new({
-      ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
-      ColorSequenceKeypoint.new(0.5, Color3.fromRGB(20, 20, 40)),
-      ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0))
-    }),
-    Rotation = 0
-  })
+  -- Glow branco ao redor do buraco negro
+  if CenterGlow then
+    local Glow = Create("Frame", BGContainer, {
+      Size = UDim2.new(0, 100, 0, 100),
+      Position = UDim2.new(0.5, 0, 0.5, 0),
+      AnchorPoint = Vector2.new(0.5, 0.5),
+      BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+      BackgroundTransparency = 0.9,
+      ZIndex = 4,
+      Name = "CenterGlow"
+    })
+    Make("Corner", Glow, UDim.new(0.5, 0))
 
-  -- Dark overlay
-  local DarkOverlay = Create("Frame", BGContainer, {
-    Size = UDim2.new(1, 0, 1, 0),
-    BackgroundColor3 = OverlayColor,
-    BackgroundTransparency = OverlayTransparency,
-    ZIndex = 3
-  })
-
-  -- Animated border glow
-  local BorderGlow = Create("Frame", MainFrame, {
-    Size = UDim2.new(1, 4, 1, 4),
-    Position = UDim2.new(0, -2, 0, -2),
-    BackgroundTransparency = 1,
-    ZIndex = 0,
-    Name = "BorderGlow"
-  })
-
-  local BorderStroke = Create("UIStroke", BorderGlow, {
-    Thickness = 2,
-    Color = Theme["Color Theme"],
-    Transparency = 0.7
-  })
-
-  -- Animation loop for gradient
-  if Animated then
+    -- Animação de pulso no glow
     task.spawn(function()
-      while MainFrame and MainFrame.Parent do
-        for i = 0, 360, 2 do
-          if not Gradient then break end
-          Gradient.Rotation = i
-          task.wait(0.03)
-        end
-      end
-    end)
-
-    -- Pulse border glow
-    task.spawn(function()
-      while MainFrame and MainFrame.Parent do
-        CreateTween({BorderStroke, "Transparency", 0.3, 1.5})
-        task.wait(1.5)
-        if not BorderStroke then break end
-        CreateTween({BorderStroke, "Transparency", 0.8, 1.5})
-        task.wait(1.5)
+      while BGContainer and BGContainer.Parent do
+        CreateTween({Glow, "Size", UDim2.new(0, 120, 0, 120), 2})
+        CreateTween({Glow, "BackgroundTransparency", 0.95, 2})
+        task.wait(2)
+        if not Glow then break end
+        CreateTween({Glow, "Size", UDim2.new(0, 100, 0, 100), 2})
+        CreateTween({Glow, "BackgroundTransparency", 0.9, 2})
+        task.wait(2)
       end
     end)
   end
 
+  -- Disco de acreção (anel branco ao redor)
+  if AccretionDisk then
+    local Disk = Create("Frame", BGContainer, {
+      Size = UDim2.new(0, 140, 0, 6),
+      Position = UDim2.new(0.5, 0, 0.5, 0),
+      AnchorPoint = Vector2.new(0.5, 0.5),
+      BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+      BackgroundTransparency = 0.7,
+      Rotation = 0,
+      ZIndex = 3,
+      Name = "AccretionDisk"
+    })
+    Make("Corner", Disk, UDim.new(0.5, 0))
+
+    -- Segundo disco (maior, mais transparente)
+    local Disk2 = Create("Frame", BGContainer, {
+      Size = UDim2.new(0, 180, 0, 3),
+      Position = UDim2.new(0.5, 0, 0.5, 0),
+      AnchorPoint = Vector2.new(0.5, 0.5),
+      BackgroundColor3 = Color3.fromRGB(200, 200, 200),
+      BackgroundTransparency = 0.85,
+      Rotation = 45,
+      ZIndex = 3,
+      Name = "AccretionDisk2"
+    })
+    Make("Corner", Disk2, UDim.new(0.5, 0))
+
+    -- Animação de rotação dos discos
+    task.spawn(function()
+      local angle = 0
+      while BGContainer and BGContainer.Parent do
+        angle = angle + 0.5
+        if Disk then Disk.Rotation = angle end
+        if Disk2 then Disk2.Rotation = angle + 45 end
+        task.wait(0.03)
+      end
+    end)
+  end
+
+  -- Sistema de partículas orbitando o buraco negro
+  local Particles = {}
+  local CenterPos = Vector2.new(0.5, 0.5)
+
+  for i = 1, ParticleCount do
+    task.spawn(function()
+      local angle = math.random() * 2 * math.pi
+      local distance = math.random(80, 250)
+      local speed = math.random(15, 40) / 1000
+      local size = math.random(1, 4)
+      local brightness = math.random(100, 255)
+
+      local Particle = Create("Frame", BGContainer, {
+        Size = UDim2.new(0, size, 0, size),
+        Position = UDim2.new(CenterPos.X + math.cos(angle) * distance / 1000, 0, CenterPos.Y + math.sin(angle) * distance / 1000, 0),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = Color3.fromRGB(brightness, brightness, brightness),
+        BackgroundTransparency = math.random(20, 60) / 100,
+        BorderSizePixel = 0,
+        ZIndex = 2
+      })
+      Make("Corner", Particle, UDim.new(0.5, 0))
+
+      table.insert(Particles, {
+        Instance = Particle,
+        Angle = angle,
+        Distance = distance,
+        Speed = speed,
+        OrbitOffset = math.random() * 2 * math.pi
+      })
+    end)
+    task.wait(0.01)
+  end
+
+  -- Animação das partículas orbitando
+  task.spawn(function()
+    local time = 0
+    while BGContainer and BGContainer.Parent do
+      time = time + 0.016
+      for _, p in ipairs(Particles) do
+        if p.Instance and p.Instance.Parent then
+          -- Partícula orbita em espiral em direção ao centro
+          p.Angle = p.Angle + p.Speed
+          p.Distance = math.max(40, p.Distance - 0.3)  -- Sucção pro centro
+
+          -- Se chegar muito perto, reseta
+          if p.Distance <= 40 then
+            p.Distance = math.random(200, 300)
+            p.Angle = math.random() * 2 * math.pi
+            p.Instance.BackgroundTransparency = 0
+            CreateTween({p.Instance, "BackgroundTransparency", math.random(20, 60) / 100, 0.5})
+          end
+
+          local x = CenterPos.X + math.cos(p.Angle + p.OrbitOffset) * (p.Distance / 1000)
+          local y = CenterPos.Y + math.sin(p.Angle + p.OrbitOffset) * (p.Distance / 1000) * 0.6  -- Elipse
+
+          p.Instance.Position = UDim2.new(x, 0, y, 0)
+        end
+      end
+      task.wait(0.016)
+    end
+  end)
+
+  -- Raios de luz (streaks) saindo do centro
+  for i = 1, 8 do
+    task.spawn(function()
+      local streak = Create("Frame", BGContainer, {
+        Size = UDim2.new(0, 2, 0, math.random(30, 80)),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        AnchorPoint = Vector2.new(0.5, 1),
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 0.9,
+        Rotation = i * 45,
+        ZIndex = 2
+      })
+
+      task.spawn(function()
+        while streak and streak.Parent do
+          CreateTween({streak, "BackgroundTransparency", 0.7, 1.5})
+          CreateTween({streak, "Size", UDim2.new(0, 2, 0, math.random(40, 100)), 1.5})
+          task.wait(1.5)
+          if not streak then break end
+          CreateTween({streak, "BackgroundTransparency", 0.95, 1.5})
+          CreateTween({streak, "Size", UDim2.new(0, 2, 0, math.random(20, 50)), 1.5})
+          task.wait(1.5)
+        end
+      end)
+    end)
+  end
+
+  -- Overlay escuro por cima de tudo (pra UI ficar legível)
+  local UIOverlay = Create("Frame", BGContainer, {
+    Size = UDim2.new(1, 0, 1, 0),
+    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+    BackgroundTransparency = 0.3,
+    ZIndex = 10
+  })
+
+  -- Gradient no overlay pra escurecer as bordas
+  local EdgeGradient = Create("UIGradient", UIOverlay, {
+    Color = ColorSequence.new({
+      ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
+      ColorSequenceKeypoint.new(0.3, Color3.fromRGB(0, 0, 0)),
+      ColorSequenceKeypoint.new(0.7, Color3.fromRGB(0, 0, 0)),
+      ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0))
+    }),
+    Transparency = NumberSequence.new({
+      NumberSequenceKeypoint.new(0, 0.8),
+      NumberSequenceKeypoint.new(0.2, 0.3),
+      NumberSequenceKeypoint.new(0.8, 0.3),
+      NumberSequenceKeypoint.new(1, 0.8)
+    })
+  })
+
   return BGContainer
 end
 
--- ============ CURSOR SYSTEM ============
+-- ============================================================
+-- CURSOR SYSTEM (White)
+-- ============================================================
 local CursorSystem = {}
 
 function CursorSystem:CreateCustomCursor(ScreenGui, Configs)
   Configs = Configs or {}
-  local CursorColor = Configs.Color or Theme["Color Theme"]
+  local CursorColor = Configs.Color or Color3.fromRGB(255, 255, 255)
   local CursorSize = Configs.Size or 8
   local TrailEnabled = Configs.Trail or true
 
@@ -727,10 +713,9 @@ function CursorSystem:CreateCustomCursor(ScreenGui, Configs)
   local Stroke = Create("UIStroke", Cursor, {
     Thickness = 1,
     Color = Color3.fromRGB(255, 255, 255),
-    Transparency = 0.5
+    Transparency = 0.3
   })
 
-  -- Trail particles
   local Trails = {}
   if TrailEnabled then
     for i = 1, 5 do
@@ -770,13 +755,9 @@ function CursorSystem:CreateCustomCursor(ScreenGui, Configs)
     end
   end)
 
-  -- Hide default cursor
-  local function HideDefaultCursor()
-    pcall(function()
-      UserInputService.MouseIconEnabled = false
-    end)
-  end
-  HideDefaultCursor()
+  pcall(function()
+    UserInputService.MouseIconEnabled = false
+  end)
 
   return Cursor
 end
@@ -877,7 +858,6 @@ local function GetColor(Instance)
   return ""
 end
 
--- /////////// --
 function redzlib:GetIcon(IconName)
   if IconName:find("rbxassetid://") or IconName:len() < 1 then return IconName end
   IconName = IconName:lower():gsub("lucide", ""):gsub("-", "")
@@ -930,22 +910,20 @@ function redzlib:SetScale(NewScale)
 end
 
 function redzlib:MakeWindow(Configs)
-  local WTitle = Configs[1] or Configs.Name or Configs.Title or "redz Library V5-GIF"
+  local WTitle = Configs[1] or Configs.Name or Configs.Title or "redz Library V5-BlackHole"
   local WMiniText = Configs[2] or Configs.SubTitle or "by : redz9999"
 
-  -- GIF Background Configs
-  local BGConfigs = Configs.Background or Configs.GIF or {}
-  local EnableGIF = BGConfigs.Enabled ~= false
-  local GIFUrl = BGConfigs.GIFUrl or BGConfigs.Image or ""
-  local GIFAssetId = BGConfigs.GIFAssetId or ""
-  local BGAnimated = BGConfigs.Animated ~= false
-  local BGOverlayTransparency = BGConfigs.OverlayTransparency or 0.6
+  -- Black Hole Configs
+  local BHConfigs = Configs.BlackHole or {}
+  local EnableBlackHole = BHConfigs.Enabled ~= false
+  local BHParticleCount = BHConfigs.ParticleCount or 60
+  local BHCenterGlow = BHConfigs.CenterGlow ~= false
+  local BHAccretionDisk = BHConfigs.AccretionDisk ~= false
 
   -- Animation Configs
   local AnimConfigs = Configs.Animations or {}
   local EnableAnimations = AnimConfigs.Enabled ~= false
   local IntroAnimation = AnimConfigs.Intro or "Scale"
-  local EnableParticles = AnimConfigs.Particles or false
   local EnableCursor = AnimConfigs.CustomCursor or false
 
   Settings.ScriptFile = Configs[3] or Configs.SaveFolder or false
@@ -968,23 +946,23 @@ function redzlib:MakeWindow(Configs)
 
   local UISizeX, UISizeY = unpack(redzlib.Save.UISize)
 
-  -- Main Frame with GIF Background
+  -- Main Frame
   local MainFrame = InsertTheme(Create("ImageButton", ScreenGui, {
     Size = UDim2.fromOffset(UISizeX, UISizeY),
     Position = UDim2.new(0.5, -UISizeX/2, 0.5, -UISizeY/2),
-    BackgroundTransparency = EnableGIF and 0 or 0.03,
+    BackgroundTransparency = 0.03,
     BackgroundColor3 = Theme["Color Hub 2"],
     Name = "Hub",
     ClipsDescendants = true
   }), "Main")
 
-  -- Setup GIF Background
-  if EnableGIF then
-    GIFBackground:Setup(MainFrame, {
-      GIFUrl = GIFUrl,
-      GIFAssetId = GIFAssetId,
-      Animated = BGAnimated,
-      OverlayTransparency = BGOverlayTransparency
+  -- Setup Black Hole Background
+  if EnableBlackHole then
+    BlackHoleSystem:Create(MainFrame, {
+      Enabled = true,
+      ParticleCount = BHParticleCount,
+      CenterGlow = BHCenterGlow,
+      AccretionDisk = BHAccretionDisk
     })
   else
     Make("Gradient", MainFrame, {Rotation = 45})
@@ -995,31 +973,29 @@ function redzlib:MakeWindow(Configs)
   -- Intro Animation
   if EnableAnimations then
     if IntroAnimation == "Scale" then
-      AnimationSystem:ScaleIn(MainFrame, 0.6)
+      MainFrame.Size = UDim2.new(0, 0, 0, 0)
+      CreateTween({MainFrame, "Size", UDim2.fromOffset(UISizeX, UISizeY), 0.6, true, Enum.EasingStyle.Back})
     elseif IntroAnimation == "Fade" then
-      AnimationSystem:FadeIn(MainFrame, 0.5)
+      MainFrame.BackgroundTransparency = 1
+      CreateTween({MainFrame, "BackgroundTransparency", 0.03, 0.5})
     elseif IntroAnimation == "Bounce" then
-      AnimationSystem:BounceIn(MainFrame, 0.7)
+      MainFrame.Position = MainFrame.Position + UDim2.new(0, 0, 0, 50)
+      MainFrame.BackgroundTransparency = 1
+      CreateTween({MainFrame, "Position", MainFrame.Position - UDim2.new(0, 0, 0, 50), 0.7, true, Enum.EasingStyle.Bounce})
+      CreateTween({MainFrame, "BackgroundTransparency", 0.03, 0.7})
     elseif IntroAnimation == "SlideLeft" then
-      AnimationSystem:SlideIn(MainFrame, "Left", 0.5)
+      MainFrame.Position = MainFrame.Position - UDim2.new(0, 100, 0, 0)
+      CreateTween({MainFrame, "Position", UDim2.new(0.5, -UISizeX/2, 0.5, -UISizeY/2), 0.5, true, Enum.EasingStyle.Quint})
     elseif IntroAnimation == "SlideRight" then
-      AnimationSystem:SlideIn(MainFrame, "Right", 0.5)
+      MainFrame.Position = MainFrame.Position + UDim2.new(0, 100, 0, 0)
+      CreateTween({MainFrame, "Position", UDim2.new(0.5, -UISizeX/2, 0.5, -UISizeY/2), 0.5, true, Enum.EasingStyle.Quint})
     elseif IntroAnimation == "SlideTop" then
-      AnimationSystem:SlideIn(MainFrame, "Top", 0.5)
+      MainFrame.Position = MainFrame.Position - UDim2.new(0, 0, 0, 100)
+      CreateTween({MainFrame, "Position", UDim2.new(0.5, -UISizeX/2, 0.5, -UISizeY/2), 0.5, true, Enum.EasingStyle.Quint})
     elseif IntroAnimation == "SlideBottom" then
-      AnimationSystem:SlideIn(MainFrame, "Bottom", 0.5)
+      MainFrame.Position = MainFrame.Position + UDim2.new(0, 0, 0, 100)
+      CreateTween({MainFrame, "Position", UDim2.new(0.5, -UISizeX/2, 0.5, -UISizeY/2), 0.5, true, Enum.EasingStyle.Quint})
     end
-  end
-
-  -- Particles on open
-  if EnableParticles and EnableAnimations then
-    task.delay(0.5, function()
-      ParticleSystem:CreateSparkle(MainFrame, {
-        Color = Theme["Color Theme"],
-        Count = 15,
-        Lifetime = 2
-      })
-    end)
   end
 
   local MainCorner = Make("Corner", MainFrame)
@@ -1168,11 +1144,6 @@ function redzlib:MakeWindow(Configs)
   local Minimized, SaveSize, WaitClick
   local Window, FirstTab = {}, false
   function Window:CloseBtn()
-    if EnableAnimations then
-      AnimationSystem:Shake(MainFrame, 0.3)
-      CreateTween({MainFrame, "BackgroundTransparency", 1, 0.3})
-      CreateTween({MainFrame, "Size", UDim2.new(0, 0, 0, 0), 0.3, true})
-    end
     local Dialog = Window:Dialog({
       Title = "Close",
       Text = "Are you sure you want to close this script??",
@@ -1180,11 +1151,7 @@ function redzlib:MakeWindow(Configs)
         {"Confirm", function()
           ScreenGui:Destroy()
         end},
-        {"Cancel", function()
-          if EnableAnimations then
-            CreateTween({MainFrame, "BackgroundTransparency", 0, 0.3})
-          end
-        end}
+        {"Cancel"}
       }
     })
   end
@@ -1194,9 +1161,6 @@ function redzlib:MakeWindow(Configs)
 
     if Minimized then
       MinimizeButton.Image = "rbxassetid://10734896206"
-      if EnableAnimations then
-        AnimationSystem:ScaleIn(MainFrame, 0.25)
-      end
       CreateTween({MainFrame, "Size", SaveSize, 0.25, true})
       ControlSize1.Visible = true
       ControlSize2.Visible = true
@@ -1292,8 +1256,8 @@ function redzlib:MakeWindow(Configs)
     })Make("Gradient", Frame, {Rotation = 270})Make("Corner", Frame)
 
     local ButtonsHolder = Create("Frame", Frame, {
-      Size = UDim2.fromScale(1, 0.35),
-      Position = UDim2.fromScale(0, 1),
+      Size = UDim2.new(1, 0, 0.35),
+      Position = UDim2.new(0, 1, 0),
       AnchorPoint = Vector2.new(0, 1),
       BackgroundColor3 = Theme["Color Hub 2"],
       BackgroundTransparency = 1
@@ -1317,12 +1281,7 @@ function redzlib:MakeWindow(Configs)
 
     MainCorner:Clone().Parent = Screen
     Frame.Parent = Screen
-
-    if EnableAnimations then
-      AnimationSystem:ScaleIn(Frame, 0.3)
-    else
-      CreateTween({Frame, "Size", UDim2.fromOffset(250, 150), 0.2})
-    end
+    CreateTween({Frame, "Size", UDim2.fromOffset(250, 150), 0.2, true})
     CreateTween({Frame, "Transparency", 0, 0.15})
     CreateTween({Screen, "Transparency", 0.3, 0.15})
 
@@ -1350,9 +1309,6 @@ function redzlib:MakeWindow(Configs)
       Button.Activated:Connect(Callback)
     end
     function Dialog:Close()
-      if EnableAnimations then
-        CreateTween({Frame, "Size", UDim2.fromOffset(250 * 1.08, 150 * 1.08), 0.2})
-      end
       CreateTween({Screen, "Transparency", 1, 0.15})
       CreateTween({Frame, "Transparency", 1, 0.15, true})
       Screen:Destroy()
@@ -1461,25 +1417,11 @@ function redzlib:MakeWindow(Configs)
           Tab.func:Disable()
         end
       end)
-
-      if EnableAnimations then
-        CreateTween({Container, "Size", UDim2.new(1, 0, 1, 0), 0.3, false, Enum.EasingStyle.Back})
-      else
-        CreateTween({Container, "Size", UDim2.new(1, 0, 1, 0), 0.3})
-      end
+      CreateTween({Container, "Size", UDim2.new(1, 0, 1, 0), 0.3, false, Enum.EasingStyle.Back})
       CreateTween({LabelTitle, "TextTransparency", 0, 0.35})
       CreateTween({LabelIcon, "ImageTransparency", 0, 0.35})
       CreateTween({Selected, "Size", UDim2.new(0, 4, 0, 13), 0.35})
       CreateTween({Selected, "BackgroundTransparency", 0, 0.35})
-
-      -- Tab switch particles
-      if EnableParticles then
-        ParticleSystem:CreateSparkle(TabSelect, {
-          Color = Theme["Color Theme"],
-          Count = 5,
-          Lifetime = 1
-        })
-      end
     end
     TabSelect.Activated:Connect(Tabs)
 
@@ -1583,10 +1525,6 @@ function redzlib:MakeWindow(Configs)
 
       FButton.Activated:Connect(function()
         Funcs:FireCallback(Callback)
-        if EnableAnimations then
-          AnimationSystem:GlowEffect(FButton, Theme["Color Theme"], 0.5)
-          ParticleSystem:CreateRipple(FButton, UDim2.new(0.5, 0, 0.5, 0), Theme["Color Theme"])
-        end
       end)
 
       local Button = {}
@@ -1647,9 +1585,6 @@ function redzlib:MakeWindow(Configs)
           CreateTween({Toggle, "Position", UDim2.new(1, 0, 0.5), 0.25})
           CreateTween({Toggle, "BackgroundTransparency", 0, 0.25})
           CreateTween({Toggle, "AnchorPoint", Vector2.new(1, 0.5), 0.25, Wait or false})
-          if EnableAnimations then
-            AnimationSystem:GlowEffect(ToggleHolder, Theme["Color Theme"], 0.5)
-          end
         else
           CreateTween({Toggle, "Position", UDim2.new(0, 0, 0.5), 0.25})
           CreateTween({Toggle, "BackgroundTransparency", 0.8, 0.25})
@@ -2328,10 +2263,10 @@ function redzlib:MakeWindow(Configs)
   CloseButton.Activated:Connect(Window.CloseBtn)
   MinimizeButton.Activated:Connect(Window.MinimizeBtn)
 
-  -- Setup custom cursor
+  -- Setup custom cursor (white)
   if EnableCursor then
     CursorSystem:CreateCustomCursor(ScreenGui, {
-      Color = Theme["Color Theme"],
+      Color = Color3.fromRGB(255, 255, 255),
       Trail = true
     })
   end
@@ -2339,10 +2274,7 @@ function redzlib:MakeWindow(Configs)
   return Window
 end
 
--- Expose animation and particle systems
-redzlib.AnimationSystem = AnimationSystem
-redzlib.ParticleSystem = ParticleSystem
-redzlib.GIFBackground = GIFBackground
+redzlib.BlackHoleSystem = BlackHoleSystem
 redzlib.CursorSystem = CursorSystem
 
 return redzlib
