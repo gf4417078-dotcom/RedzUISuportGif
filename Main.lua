@@ -2073,3 +2073,249 @@ redzlib.BlackHoleSystem = BlackHoleSystem
 redzlib.CursorSystem = CursorSystem
 
 return redzlib
+
+local Window = redzlib:MakeWindow({
+    "Black Hole Hub",
+    "by: gf4417078",
+    "BlackHoleHub",
+    BlackHole = {
+        Enabled = true,
+        ParticleCount = 80,
+        CenterGlow = true,
+        AccretionDisk = true,
+    },
+    Animations = {
+        Enabled = true,
+        Intro = "Scale",
+        CustomCursor = true,
+    }
+})
+
+Window:AddMinimizeButton({
+    Button = {
+        Image = "rbxassetid://71014873973869",
+        BackgroundTransparency = 0
+    },
+    Corner = {
+        CornerRadius = UDim.new(0, 8)
+    }
+})
+
+local MainTab = Window:MakeTab({"Main"})
+local CombatTab = Window:MakeTab({"Combat"})
+local VisualTab = Window:MakeTab({"Visual"})
+local MiscTab = Window:MakeTab({"Misc"})
+
+Window:SelectTab(MainTab)
+
+MainTab:AddSection("Black Hole Hub")
+
+MainTab:AddParagraph({
+    "Black Hole Hub v1.0",
+    [[Hub completo com tema All Black + White Details
+Buraco negro animado no fundo!]]
+})
+
+MainTab:AddButton({
+    "Print Hello World",
+    function()
+        print("Hello World do Black Hole Hub!")
+    end
+})
+
+MainTab:AddButton({
+    "Mostrar Info do Jogador",
+    function()
+        local player = game.Players.LocalPlayer
+        print("Jogador:", player.Name)
+        print("DisplayName:", player.DisplayName)
+        print("UserId:", player.UserId)
+    end
+})
+
+CombatTab:AddSection("Combat Settings")
+
+CombatTab:AddToggle({
+    "Auto Farm",
+    false,
+    function(Value)
+        print("Auto Farm:", Value)
+    end,
+    "AutoFarmFlag"
+})
+
+CombatTab:AddToggle({
+    "Auto Attack",
+    false,
+    function(Value)
+        print("Auto Attack:", Value)
+    end,
+    "AutoAttackFlag"
+})
+
+CombatTab:AddToggle({
+    "God Mode",
+    false,
+    function(Value)
+        print("God Mode:", Value)
+        if Value then
+            local char = game.Players.LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid.MaxHealth = math.huge
+                char.Humanoid.Health = math.huge
+            end
+        end
+    end
+})
+
+CombatTab:AddSection("Speed e Jump")
+
+CombatTab:AddSlider({
+    "Walk Speed",
+    16,
+    500,
+    5,
+    16,
+    function(Value)
+        local char = game.Players.LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = Value
+        end
+    end,
+    "SpeedFlag"
+})
+
+CombatTab:AddSlider({
+    "Jump Power",
+    50,
+    300,
+    10,
+    50,
+    function(Value)
+        local char = game.Players.LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.JumpPower = Value
+        end
+    end,
+    "JumpFlag"
+})
+
+VisualTab:AddSection("Visual Settings")
+
+VisualTab:AddToggle({
+    "ESP Boxes",
+    false,
+    function(Value)
+        print("ESP Boxes:", Value)
+    end
+})
+
+VisualTab:AddToggle({
+    "ESP Names",
+    false,
+    function(Value)
+        print("ESP Names:", Value)
+    end
+})
+
+VisualTab:AddToggle({
+    "Full Bright",
+    false,
+    function(Value)
+        if Value then
+            game.Lighting.Brightness = 10
+            game.Lighting.GlobalShadows = false
+        else
+            game.Lighting.Brightness = 2
+            game.Lighting.GlobalShadows = true
+        end
+    end
+})
+
+VisualTab:AddSection("Tema")
+
+VisualTab:AddDropdown({
+    "Selecionar Tema",
+    {"BlackHole", "Neon", "Cyberpunk", "Darker", "Dark", "Purple"},
+    "BlackHole",
+    function(Selected)
+        redzlib:SetTheme(Selected)
+    end,
+    "ThemeFlag"
+})
+
+MiscTab:AddSection("Social")
+
+MiscTab:AddDiscordInvite({
+    "Black Hole Community",
+    "rbxassetid://18751483361",
+    "https://discord.gg/seuserver"
+})
+
+MiscTab:AddSection("Configuracoes")
+
+MiscTab:AddToggle({
+    "Auto Save Config",
+    true,
+    function(Value)
+        print("Auto Save:", Value)
+    end
+})
+
+MiscTab:AddToggle({
+    "Anti AFK",
+    false,
+    function(Value)
+        if Value then
+            local vu = game:GetService("VirtualUser")
+            game.Players.LocalPlayer.Idled:Connect(function()
+                vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                task.wait(1)
+                vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+            end)
+        end
+    end
+})
+
+MiscTab:AddButton({
+    "Rejoin Server",
+    function()
+        local ts = game:GetService("TeleportService")
+        ts:Teleport(game.PlaceId, game.Players.LocalPlayer)
+    end
+})
+
+MiscTab:AddButton({
+    "Server Hop",
+    function()
+        local Http = game:GetService("HttpService")
+        local TPS = game:GetService("TeleportService")
+        local Api = "https://games.roblox.com/v1/games/"
+        local _place = game.PlaceId
+        local _servers = Api.._place.."/servers/Public?sortOrder=Asc&limit=100"
+        function ListServers(cursor)
+            local Raw = game:HttpGet(_servers .. ((cursor and "&cursor="..cursor) or ""))
+            return Http:JSONDecode(Raw)
+        end
+        local Server, Next
+        repeat
+            local Servers = ListServers(Next)
+            Server = Servers.data[1]
+            Next = Servers.nextPageCursor
+        until Server
+        TPS:TeleportToPlaceInstance(_place, Server.id, game.Players.LocalPlayer)
+    end
+})
+
+local UserInputService = game:GetService("UserInputService")
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.Insert then
+        Window:Minimize()
+    end
+    if input.KeyCode == Enum.KeyCode.End then
+        Window:CloseBtn()
+    end
+end)
+
+print("Black Hole Hub Inicializado!")
